@@ -1,11 +1,21 @@
+"""
+A simple platforms game. Platforms fall from random positions at the top of the screen and descend
+slowly downwards. The player must jump from platform to platform to remain on the screen for as long
+as possible.
+"""
+
+
 import pygame
 import random
 import time
 
 
 def spawnPlatform():
+	"""Spawn a new platform with random properties"""
+
 	length = random.randint(10, 50)
-	x1 = 0; x2 = 0
+	x1 = 0;
+	x2 = 0
 
 	Absolute = abs(x1 - x2)  # x co-ordinates of the platforms
 	while not (abs(x1 - x2) > 50 and abs(x1 - x2) < 10):
@@ -28,6 +38,8 @@ def spawnPlatform():
 
 
 class Platform:
+	"""A rectangular platform that the player can jump on"""
+
 	def __init__(self, x, y, length, ySpeed):
 		self.x = x
 		self.y = y
@@ -37,56 +49,63 @@ class Platform:
 
 	def update(self):
 		self.y += 20 * deltaTime
-		pass
 
 	def draw(self):
 		# drawing the platform
 		screen.blit(self.platform_img, (self.x, self.y))
-		pass
 
 	def touchingPlayer(self):
 		pass
 
 
 class Player:
+	"""The player"""
+
+	Y_SPEED = 100
+	"""The player's speed in the y direction when they jump or fall"""
+
+	X_SPEED = 50
+	"""The player's speed in the x direction when they are moving left or right"""
+
+	WIDTH = 80
+	HEIGHT = 130
+
 	def __init__(self):
 		self.x = 400
 		self.y = 400
-		self.w = 80
-		self.h = 130
-		self.xSpeed = 5
-		self.ySpeed = 5
+
+		self.xVelocity = 0
+		"""The player's current x velocity"""
+
+		self.yVelocity = 0
+		"""The player's current y velocity"""
+
 		self.onPlatform = False
+		"""Is the player currently standing on a platform"""
 
 	def update(self):
-		self.y += self.ySpeed
-
-		# player movement
-		for event in pygame.event.get():
-			if event.type == pygame.KEYDOWN:
-				if event.key == pygame.K_LEFT:
-					self.x -= self.xSpeed
-				elif event.key == pygame.K_RIGHT:
-					self.x += self.xSpeed
-				elif event.key == pygame.K_SPACE:
-					self.y += self.ySpeed
+		# update location according to x and y velocity
+		self.x += self.xVelocity * deltaTime
+		self.y += self.yVelocity * deltaTime
 
 		# landing
-		if not self.onPlatform and self.ySpeed < 0:
-			for platform in platforms:
-				if platform.touchingPlayer():
-					self.y = platform.y
-					self.ySpeed = platform.ySpeed
-					self.onPlatform = True
-					break
+		# if not self.onPlatform and self.ySpeed < 0:
+		# 	for platform in platforms:
+		# 		if platform.touchingPlayer():
+		# 			self.y = platform.y
+		# 			self.ySpeed = platform.ySpeed
+		# 			self.onPlatform = True
+		# 			break
 
 	def draw(self):
+		# draw a rectangle representing the player
 		blue = (0, 0, 255)
-		pygame.draw.rect(screen, blue, pygame.Rect(50, 50, 100, 100))
-		pygame.display.flip()
+		pygame.draw.rect(screen, blue, pygame.Rect(self.x, self.y, Player.WIDTH, Player.HEIGHT))
 
 
 def update():
+	"""Called each frame to update the game state."""
+
 	for platform in platforms:
 		platform.update()
 
@@ -94,35 +113,72 @@ def update():
 
 
 def draw():
+	"""Called each frame to draw the frame onto the screen."""
+
+	# draw the background
+	screen.fill((0, 0, 0))
+
 	for platform in platforms:
 		platform.draw()
 
 	player.draw()
 
 
+# this must be called at the start of every Pygame program
 pygame.init()
 
-screen = pygame.display.set_mode((800, 800))
+screen = pygame.display.set_mode(size=(1000, 800))
+"""
+The `Surface` representing the whole computer screen. 
+
+In Pygame, a `Surface` is something you can draw on, e.g. an image. Whenever we want to draw on 
+the screen we draw on the screen `Surface` and call `pygame.display.flip()` each frame to update the
+actual screen with the contents of the screen `Surface`.
+"""
 
 platforms = []
+"""All of the platforms on the screen"""
+
 player = Player()
+"""The player"""
 
 deltaTime = 0
+"""The time it took to complete the last frame cycle"""
 
 running = True
+"""Whether the program is currently running"""
+
+print("Program initialised!")
 
 # ------ Main Game Loop --------
 while running:
+	# record initial time (to calculate `deltaTime`)
 	initialTime = time.time()
+
+	# handle events
 	for event in pygame.event.get():
-		if event.type == pygame.QUIT:
+
+		if event.type == pygame.QUIT:  # close button pressed
 			running = False
 
+		if event.type == pygame.KEYDOWN:
+
+			if event.key == pygame.K_LEFT:
+				player.xVelocity = -Player.X_SPEED
+
+			elif event.key == pygame.K_RIGHT:
+				player.xVelocity = Player.X_SPEED
+
+			elif event.key == pygame.K_SPACE:
+				player.yVelocity = -Player.Y_SPEED
+
+	# these procedures update and draw all of the platforms and the player
 	update()
 	draw()
 
-	pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(0, 0, 100, 100))
-
+	# called each frame to update the actual screen with the contents of the screen `Surface`
 	pygame.display.flip()
 
+	# `deltaTime` (the time it took to perform the last frame) is the current time minus the time
+	# at the start of the frame
 	deltaTime = time.time() - initialTime
