@@ -61,31 +61,40 @@ class Platform:
 class Player:
 	"""The player"""
 
-	Y_SPEED = 100
+	JUMP_VELOCITY = -3000
 	"""The player's speed in the y direction when they jump or fall"""
 
-	X_SPEED = 50
+	X_SPEED = 400
 	"""The player's speed in the x direction when they are moving left or right"""
 
-	WIDTH = 80
-	HEIGHT = 130
+	GRAVITY = 12000
+	"""The player's acceleration downwards"""
+
+	WIDTH = 40
+	HEIGHT = 80
 
 	def __init__(self):
 		self.x = 400
 		self.y = 400
 
-		self.xVelocity = 0
-		"""The player's current x velocity"""
-
 		self.yVelocity = 0
 		"""The player's current y velocity"""
 
-		self.onPlatform = False
+		self.onPlatform = True
 		"""Is the player currently standing on a platform"""
 
 	def update(self):
-		# update location according to x and y velocity
-		self.x += self.xVelocity * deltaTime
+		# update x location
+		keyIsPressed = pygame.key.get_pressed()
+		if keyIsPressed[pygame.K_LEFT]:
+			self.x -= Player.X_SPEED * deltaTime
+		if keyIsPressed[pygame.K_RIGHT]:
+			self.x += Player.X_SPEED * deltaTime
+
+		# update y location
+		if not self.onPlatform:
+			self.yVelocity += Player.GRAVITY * deltaTime
+
 		self.y += self.yVelocity * deltaTime
 
 		# landing
@@ -158,19 +167,18 @@ while running:
 	# handle events
 	for event in pygame.event.get():
 
-		if event.type == pygame.QUIT:  # close button pressed
+		if event.type == pygame.QUIT:
+			# close window when close button pressed
 			running = False
+			print("Quitting game")
 
-		if event.type == pygame.KEYDOWN:
+		elif event.type == pygame.KEYDOWN:
 
-			if event.key == pygame.K_LEFT:
-				player.xVelocity = -Player.X_SPEED
-
-			elif event.key == pygame.K_RIGHT:
-				player.xVelocity = Player.X_SPEED
-
-			elif event.key == pygame.K_SPACE:
-				player.yVelocity = -Player.Y_SPEED
+			if event.key == pygame.K_SPACE:
+				# make the player jump when space is pressed
+				player.yVelocity = Player.JUMP_VELOCITY
+				player.onPlatform = False
+				print("Player jumped")
 
 	# these procedures update and draw all of the platforms and the player
 	update()
