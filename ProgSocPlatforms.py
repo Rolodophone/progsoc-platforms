@@ -10,52 +10,41 @@ import random
 import time
 
 
-def spawnPlatform():
-	"""Spawn a new platform with random properties"""
-
-	length = random.randint(10, 50)
-	x1 = 0;
-	x2 = 0
-
-	Absolute = abs(x1 - x2)  # x co-ordinates of the platforms
-	while not (abs(x1 - x2) > 50 and abs(x1 - x2) < 10):
-		x1 = random.randint(0, 800)
-		x2 = random.randint(0, 800)
-
-		print(x1, x2)
-		print(abs(x1 - x2))
-	# y co-ordinates of the platforms
-	"""
-	for every time the player jumps off a platform and hits the next
-
-	previousy -= 130
-	y1 = y co-ordinate of previous + 130
-	y2 = y1 + 10
-
-	green = (0,200,0)
-	pygame.draw.rect(surface, green, (x1, y1, x2, y2)))
-	"""
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 
 
 class Platform:
 	"""A rectangular platform that the player can jump on"""
 
-	def __init__(self, x, y, length, ySpeed):
-		self.x = x
-		self.y = y
+	def __init__(self, length, height, ySpeed):
+		self.randomise_x()
+		self.y = random.randint(0, SCREEN_HEIGHT)
 		self.length = length
-		self.ySpeed = ySpeed
+		self.height = height
 		self.platform_img = pygame.image.load("platform.png")
+		self.ySpeed = ySpeed
+
+	def randomise_x(self):
+		self.x = random.randint(0, SCREEN_WIDTH)
 
 	def update(self):
-		self.y += 20 * deltaTime
+		self.y += self.ySpeed * deltaTime
+		if self.y > SCREEN_HEIGHT:
+			self.y = 0
+			self.randomise_x()
 
 	def draw(self):
 		# drawing the platform
 		screen.blit(self.platform_img, (self.x, self.y))
 
-	def touchingPlayer(self):
-		pass
+	def touchingPlayer(self, player_x, player_y):
+		if self.x == player_x and self.y == player_y - (self.height / 2):
+			# every time the player gets on the platform, its position
+			# is going to be the same as the platform
+			player_x = self.x
+			player_y = self.y - (self.height / 2)
+			pass
 
 
 class Player:
@@ -98,13 +87,13 @@ class Player:
 		self.y += self.yVelocity * deltaTime
 
 		# landing
-		# if not self.onPlatform and self.ySpeed < 0:
-		# 	for platform in platforms:
-		# 		if platform.touchingPlayer():
-		# 			self.y = platform.y
-		# 			self.ySpeed = platform.ySpeed
-		# 			self.onPlatform = True
-		# 			break
+		if not self.onPlatform and self.yVelocity > 0:
+			for platform in platforms:
+				if platform.touchingPlayer(self.x, self.y):
+					self.y = platform.y - Player.HEIGHT
+					self.yVelocity = platform.ySpeed
+					self.onPlatform = True
+					break
 
 	def draw(self):
 		# draw a rectangle representing the player
@@ -115,10 +104,16 @@ class Player:
 def update():
 	"""Called each frame to update the game state."""
 
+	global endMessage, running
+
 	for platform in platforms:
 		platform.update()
 
 	player.update()
+
+	# Check if player has fallen off screen
+	if player.y > SCREEN_HEIGHT:
+		endMessage = "GAME OVER!"
 
 
 def draw():
@@ -136,7 +131,9 @@ def draw():
 # this must be called at the start of every Pygame program
 pygame.init()
 
-screen = pygame.display.set_mode(size=(1000, 800))
+gameOverFont = pygame.font.SysFont('Arial', 30)
+
+screen = pygame.display.set_mode(size=(SCREEN_WIDTH, SCREEN_HEIGHT))
 """
 The `Surface` representing the whole computer screen. 
 
@@ -145,8 +142,10 @@ the screen we draw on the screen `Surface` and call `pygame.display.flip()` each
 actual screen with the contents of the screen `Surface`.
 """
 
-platforms = []
 """All of the platforms on the screen"""
+NO_OF_PLATFORMS = 8
+platforms = [ Platform(10, 5, random.randint(10,100)) for i in range(NO_OF_PLATFORMS) ]
+
 
 player = Player()
 """The player"""
@@ -156,6 +155,9 @@ deltaTime = 0
 
 running = True
 """Whether the program is currently running"""
+
+endMessage = None
+"""If this is not none, the game ends and the message is displayed"""
 
 print("Program initialised!")
 
@@ -180,9 +182,15 @@ while running:
 				player.onPlatform = False
 				print("Player jumped")
 
-	# these procedures update and draw all of the platforms and the player
-	update()
-	draw()
+	if endMessage is None:
+		# these procedures update and draw all of the platforms and the player
+		update()
+		draw()
+	else:
+		# game over
+		screen.fill(0)
+		textsurface = gameOverFont.render(endMessage, True, pygame.Color("white"))
+		screen.blit(textsurface, (20, 20))
 
 	# called each frame to update the actual screen with the contents of the screen `Surface`
 	pygame.display.flip()
