@@ -104,7 +104,7 @@ class Player:
 def update():
 	"""Called each frame to update the game state."""
 
-	global endMessage, running
+	global endMessage
 
 	for platform in platforms:
 		platform.update()
