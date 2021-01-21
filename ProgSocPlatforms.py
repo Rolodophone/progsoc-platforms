@@ -17,12 +17,16 @@ SCREEN_HEIGHT = 720
 class Platform:
 	"""A rectangular platform that the player can jump on"""
 
+	WIDTH = 71*4
+	HEIGHT = 16*4
+
 	def __init__(self, length, height, ySpeed):
 		self.randomise_x()
 		self.y = random.randint(0, SCREEN_HEIGHT)
 		self.length = length
 		self.height = height
-		self.platform_img = pygame.image.load("platform.png")
+		smallImg = pygame.image.load("platform.png")
+		self.platform_img = pygame.transform.scale(smallImg, (Platform.WIDTH, Platform.HEIGHT))
 		self.ySpeed = ySpeed
 
 	def randomise_x(self):
@@ -38,13 +42,10 @@ class Platform:
 		# drawing the platform
 		screen.blit(self.platform_img, (self.x, self.y))
 
-	def touchingPlayer(self, player_x, player_y):
-		if self.x == player_x and self.y == player_y - (self.height / 2):
-			# every time the player gets on the platform, its position
-			# is going to be the same as the platform
-			player_x = self.x
-			player_y = self.y - (self.height / 2)
-			pass
+	def touchingPlayer(self):
+		thisRect = pygame.Rect(self.x, self.y, Platform.WIDTH, Platform.HEIGHT)
+		playerRect = pygame.Rect(player.x, player.y, Player.WIDTH, Player.HEIGHT)
+		return thisRect.colliderect(playerRect)
 
 
 class Player:
@@ -59,18 +60,21 @@ class Player:
 	GRAVITY = 12000
 	"""The player's acceleration downwards"""
 
-	WIDTH = 40
-	HEIGHT = 80
+	WIDTH = 29*2
+	HEIGHT = 45*2
 
 	def __init__(self):
 		self.x = 400
-		self.y = 400
+		self.y = -Player.HEIGHT
 
 		self.yVelocity = 0
 		"""The player's current y velocity"""
 
 		self.onPlatform = True
 		"""Is the player currently standing on a platform"""
+
+		smallImg = pygame.image.load("character.png")
+		self.playerImg = pygame.transform.scale(smallImg, (Player.WIDTH, Player.HEIGHT))
 
 	def update(self):
 		# update x location
@@ -80,31 +84,39 @@ class Player:
 		if keyIsPressed[pygame.K_RIGHT]:
 			self.x += Player.X_SPEED * deltaTime
 
-		# update y location
+		# update onPlatform
+		self.onPlatform = False
+		for platform in platforms:
+			self.onPlatform = self.y == platform.y - Player.HEIGHT
+
+		# apply gravity
 		if not self.onPlatform:
 			self.yVelocity += Player.GRAVITY * deltaTime
 
+		# apply velocity
 		self.y += self.yVelocity * deltaTime
 
 		# landing
 		if not self.onPlatform and self.yVelocity > 0:
 			for platform in platforms:
-				if platform.touchingPlayer(self.x, self.y):
+				if platform.touchingPlayer():
 					self.y = platform.y - Player.HEIGHT
 					self.yVelocity = platform.ySpeed
 					self.onPlatform = True
 					break
 
 	def draw(self):
-		# draw a rectangle representing the player
-		blue = (0, 0, 255)
-		pygame.draw.rect(screen, blue, pygame.Rect(self.x, self.y, Player.WIDTH, Player.HEIGHT))
+		screen.blit(self.playerImg, (self.x, self.y))
 
 
 def update():
 	"""Called each frame to update the game state."""
 
-	global endMessage
+	global endMessage, running, score_number, start_time, score
+
+	# get the number for the score
+	score_number = pygame.time.get_ticks() - start_time
+	score = myfont.render(f"SCORE: {score_number}", False, (255, 255, 255))
 
 	for platform in platforms:
 		platform.update()
@@ -121,6 +133,7 @@ def draw():
 
 	# draw the background
 	screen.fill((0, 0, 0))
+	screen.blit(score, (10, 10))
 
 	for platform in platforms:
 		platform.draw()
@@ -130,6 +143,7 @@ def draw():
 
 # this must be called at the start of every Pygame program
 pygame.init()
+pygame.font.init()
 
 gameOverFont = pygame.font.SysFont('Arial', 30)
 
@@ -144,7 +158,7 @@ actual screen with the contents of the screen `Surface`.
 
 """All of the platforms on the screen"""
 NO_OF_PLATFORMS = 8
-platforms = [ Platform(10, 5, random.randint(10,100)) for i in range(NO_OF_PLATFORMS) ]
+platforms = [Platform(10, 5, random.randint(10, 100)) for i in range(NO_OF_PLATFORMS)]
 
 
 player = Player()
@@ -158,6 +172,13 @@ running = True
 
 endMessage = None
 """If this is not none, the game ends and the message is displayed"""
+
+# ------------------- Creating score ----------------------------------- #
+start_time = pygame.time.get_ticks()
+score_number = pygame.time.get_ticks() - start_time
+myfont = pygame.font.SysFont('Arial', 30)
+score = myfont.render(f"SCORE: {score_number}", False, (255, 255, 255))
+# ---------------------------------------------------------------------- #
 
 print("Program initialised!")
 
@@ -188,7 +209,8 @@ while running:
 		draw()
 	else:
 		# game over
-		screen.fill(0)
+		game_over_background = pygame.image.load("gameOverBackground.jpg")
+		screen.blit(game_over_background, (0, 0))
 		textsurface = gameOverFont.render(endMessage, True, pygame.Color("white"))
 		screen.blit(textsurface, (20, 20))
 
