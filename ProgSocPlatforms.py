@@ -44,7 +44,7 @@ class Platform:
 
 	def touchingPlayer(self):
 		thisRect = pygame.Rect(self.x, self.y, Platform.WIDTH, Platform.HEIGHT)
-		playerRect = pygame.Rect(player.x, player.y, Player.WIDTH, Player.HEIGHT)
+		playerRect = pygame.Rect(player.x, player.y + Player.HEIGHT - 2, Player.WIDTH, 2)
 		return thisRect.colliderect(playerRect)
 
 
@@ -70,8 +70,8 @@ class Player:
 		self.yVelocity = 0
 		"""The player's current y velocity"""
 
-		self.onPlatform = True
-		"""Is the player currently standing on a platform"""
+		self.platformOn = None
+		"""The platform the player is currently standing on"""
 
 		smallImg = pygame.image.load("character.png")
 		self.playerImg = pygame.transform.scale(smallImg, (Player.WIDTH, Player.HEIGHT))
@@ -84,25 +84,28 @@ class Player:
 		if keyIsPressed[pygame.K_RIGHT]:
 			self.x += Player.X_SPEED * deltaTime
 
-		# update onPlatform
-		self.onPlatform = False
-		for platform in platforms:
-			self.onPlatform = self.y == platform.y - Player.HEIGHT
+		# set onPlatform to False if player walked off
+		if self.platformOn is not None:  # only check if player was on a platform last frame
+			if self.x > self.platformOn.x + Platform.WIDTH or \
+					self.x + Player.WIDTH < self.platformOn.x:
+				self.platformOn = None
+
+		print(f"platformOn: {self.platformOn}")
 
 		# apply gravity
-		if not self.onPlatform:
+		if self.platformOn is None:
 			self.yVelocity += Player.GRAVITY * deltaTime
 
 		# apply velocity
 		self.y += self.yVelocity * deltaTime
 
 		# landing
-		if not self.onPlatform and self.yVelocity > 0:
+		if self.platformOn is None and self.yVelocity > 0:
 			for platform in platforms:
 				if platform.touchingPlayer():
 					self.y = platform.y - Player.HEIGHT
 					self.yVelocity = platform.ySpeed
-					self.onPlatform = True
+					self.platformOn = platform
 					break
 
 	def draw(self):
@@ -198,10 +201,11 @@ while running:
 		elif event.type == pygame.KEYDOWN:
 
 			if event.key == pygame.K_SPACE:
-				# make the player jump when space is pressed
-				player.yVelocity = Player.JUMP_VELOCITY
-				player.onPlatform = False
-				print("Player jumped")
+				# only allow jumping when on a platform
+				if player.platformOn is not None:
+					player.yVelocity = Player.JUMP_VELOCITY
+					player.platformOn = None
+					print("Player jumped")
 
 	if endMessage is None:
 		# these procedures update and draw all of the platforms and the player
@@ -211,7 +215,10 @@ while running:
 		# game over
 		game_over_background = pygame.image.load("gameOverBackground.jpg")
 		screen.blit(game_over_background, (0, 0))
+
+		# noinspection PyTypeChecker
 		textsurface = gameOverFont.render(endMessage, True, pygame.Color("white"))
+
 		screen.blit(textsurface, (20, 20))
 
 	# called each frame to update the actual screen with the contents of the screen `Surface`
