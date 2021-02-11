@@ -1,10 +1,3 @@
-"""
-A simple platforms game. Platforms fall from random positions at the top of the screen and descend
-slowly downwards. The player must jump from platform to platform to remain on the screen for as long
-as possible.
-"""
-
-
 import pygame
 import random
 import time
